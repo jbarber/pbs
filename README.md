@@ -1,6 +1,6 @@
 # pbs - Go interface to the Torque resource manager library
 
-This is a thin Go wrapper around the C library for the Torque resource manager.
+This is a thin Go wrapper around the C library (libtorque) for the [Torque resource manager](http://www.adaptivecomputing.com/products/open-source/torque/).
 
 Documentation about the functions can be found in the man pages of the Torque
 library.
@@ -51,3 +51,7 @@ from the user running the tests. If you have this, just run:
     go test github.com/jbarber/pbs
 
 The test suite also provides examples of how to use the functions.
+
+## Author
+
+Jonathan Barber
