@@ -41,10 +41,10 @@ func createSubmitScript(t *testing.T) {
 }
 
 func getCurrentUser(t *testing.T) string {
-    user, err := user.Current()
-    if err != nil {
-        t.Fatalf("Couldn't get current user: %s", err)
-    }
+	user, err := user.Current()
+	if err != nil {
+		t.Fatalf("Couldn't get current user: %s", err)
+	}
 	return user.Username
 }
 
@@ -121,7 +121,7 @@ func TestListJobs(t *testing.T) {
 	}
 	jobs, err := Pbs_selectjob(handle, filter, "")
 	if err != nil {
-	    t.Log(Pbs_geterrmsg(handle))
+		t.Log(Pbs_geterrmsg(handle))
 		t.Fatalf("Couldn't get list of jobs: %s\n", err)
 	}
 

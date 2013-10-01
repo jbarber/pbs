@@ -48,10 +48,13 @@ type Attrib struct {
 
 // Manner defines how the server should be terminated
 type Manner int
+
 // Hold defines the type of job hold to place on a job
 type Hold string
+
 // MessageStream which output stream should be written to
 type MessageStream int
+
 // Operator defines types of logical comparator
 type Operator int
 
@@ -155,8 +158,8 @@ const (
 	INCR_OLD                       Operator      = C.INCR_OLD
 )
 
-func getLastError () error {
-    return errors.New(Pbs_strerror(int(C.pbs_errno)))
+func getLastError() error {
+	return errors.New(Pbs_strerror(int(C.pbs_errno)))
 }
 
 func attrib2attribl(attribs []Attrib) *C.struct_attrl {
@@ -169,7 +172,7 @@ func attrib2attribl(attribs []Attrib) *C.struct_attrl {
 		value:    C.CString(attribs[0].Value),
 		resource: C.CString(attribs[0].Resource),
 		name:     C.CString(attribs[0].Name),
-        op:       uint32(attribs[0].Op),
+		op:       uint32(attribs[0].Op),
 	}
 	tail := first
 
@@ -178,7 +181,7 @@ func attrib2attribl(attribs []Attrib) *C.struct_attrl {
 			value:    C.CString(attr.Value),
 			resource: C.CString(attr.Resource),
 			name:     C.CString(attr.Name),
-            op:       uint32(attribs[0].Op),
+			op:       uint32(attribs[0].Op),
 		}
 	}
 
@@ -307,18 +310,18 @@ func Pbs_geterrmsg(handle int) string {
 	return C.GoString(s)
 }
 
-func Pbs_gpumode (handle int, mom_node string, gpu_id string, gpu_mode int) error {
+func Pbs_gpumode(handle int, mom_node string, gpu_id string, gpu_mode int) error {
 	m := C.CString(mom_node)
 	defer C.free(unsafe.Pointer(m))
 
 	g := C.CString(gpu_id)
 	defer C.free(unsafe.Pointer(g))
 
-    ret := C.pbs_gpumode(C.int(handle), m, g, C.int(gpu_mode))
-    if ret != 0 {
+	ret := C.pbs_gpumode(C.int(handle), m, g, C.int(gpu_mode))
+	if ret != 0 {
 		return getLastError()
-    }
-    return nil
+	}
+	return nil
 }
 
 /*
@@ -367,21 +370,21 @@ func Pbs_locjob(handle int, id string) (string, error) {
 }
 
 func Pbs_movejob(handle int, id string, destination string, extend string) error {
-    i := C.CString(id)
-    defer C.free(unsafe.Pointer(i))
+	i := C.CString(id)
+	defer C.free(unsafe.Pointer(i))
 
-    d := C.CString(destination)
-    defer C.free(unsafe.Pointer(d))
+	d := C.CString(destination)
+	defer C.free(unsafe.Pointer(d))
 
-    e := C.CString(extend)
-    defer C.free(unsafe.Pointer(e))
+	e := C.CString(extend)
+	defer C.free(unsafe.Pointer(e))
 
-    ret := C.pbs_movejob(C.int(handle), i, d, e)
-    if ret != 0 {
-        return errors.New(Pbs_strerror(int(C.pbs_errno)))
-    }
+	ret := C.pbs_movejob(C.int(handle), i, d, e)
+	if ret != 0 {
+		return errors.New(Pbs_strerror(int(C.pbs_errno)))
+	}
 
-    return nil
+	return nil
 }
 
 func Pbs_msgjob(handle int, id string, file MessageStream, message string, extend string) error {
