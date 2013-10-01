@@ -11,16 +11,12 @@
 /*
    pbs_alterjob
    pbs_alterjobasync
-   pbs_gpumode
-   pbs_gpureset
    pbs_manager
-   pbs_movejob
    pbs_rescquery
    pbs_rescreserve
    pbs_asyncrunjob
    pbs_selstat
    pbs_sigjobasync
-   pbs_stagein
 */
 package pbs
 
@@ -158,6 +154,10 @@ const (
 	MERGE                          Operator      = C.MERGE
 	INCR_OLD                       Operator      = C.INCR_OLD
 )
+
+func getLastError () error {
+    return errors.New(Pbs_strerror(int(C.pbs_errno)))
+}
 
 func attrib2attribl(attribs []Attrib) *C.struct_attrl {
 	// Empty array returns null pointer
@@ -307,6 +307,28 @@ func Pbs_geterrmsg(handle int) string {
 	return C.GoString(s)
 }
 
+func Pbs_gpumode (handle int, mom_node string, gpu_id int, gpu_mode int) error {
+	m := C.CString(mom_node)
+	defer C.free(unsafe.Pointer(m))
+
+    ret := C.pbs_gpumode(C.int(handle), m, C.int(gpu_id), C.int(gpu_mode))
+    if ret != 0 {
+		return getLastError()
+    }
+    return nil
+}
+
+func Pbs_gpureset (handle int, mom_node string, gpu_id int, ecc_perm int, ecc_vol int) error {
+	m := C.CString(mom_node)
+	defer C.free(unsafe.Pointer(m))
+
+    ret := C.pbs_gpureset(C.int(handle), m, C.int(gpu_id), C.int(ecc_perm), C.int(ecc_vol))
+    if ret != 0 {
+		return getLastError()
+    }
+    return nil
+}
+
 func Pbs_holdjob(handle int, id string, holdType Hold, extend string) error {
 	e := C.CString(extend)
 	defer C.free(unsafe.Pointer(e))
@@ -336,6 +358,24 @@ func Pbs_locjob(handle int, id string) (string, error) {
 	defer C.free(unsafe.Pointer(ret))
 
 	return C.GoString(ret), nil
+}
+
+func Pbs_movejob(handle int, id string, destination string, extend string) error {
+    i := C.CString(id)
+    defer C.free(unsafe.Pointer(i))
+
+    d := C.CString(destination)
+    defer C.free(unsafe.Pointer(d))
+
+    e := C.CString(extend)
+    defer C.free(unsafe.Pointer(e))
+
+    ret := C.pbs_movejob(C.int(handle), i, d, e)
+    if ret != 0 {
+        return errors.New(Pbs_strerror(int(C.pbs_errno)))
+    }
+
+    return nil
 }
 
 func Pbs_msgjob(handle int, id string, file MessageStream, message string, extend string) error {
@@ -482,6 +522,23 @@ func Pbs_sigjob(handle int, id string, signal string, extend string) error {
 	defer C.free(unsafe.Pointer(e))
 
 	ret := C.pbs_sigjob(C.int(handle), i, s, e)
+	if ret != 0 {
+		return errors.New(Pbs_strerror(int(C.pbs_errno)))
+	}
+	return nil
+}
+
+funct Pbs_stagein(handle int, id string, location string, extend string) error {
+	i := C.CString(id)
+	defer C.free(unsafe.Pointer(i))
+
+	l := C.CString(location)
+	defer C.free(unsafe.Pointer(l))
+
+	e := C.CString(extend)
+	defer C.free(unsafe.Pointer(e))
+
+    ret := C.pbs_stagein(C.int(handle), i, l, e)
 	if ret != 0 {
 		return errors.New(Pbs_strerror(int(C.pbs_errno)))
 	}
