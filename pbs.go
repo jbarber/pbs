@@ -318,6 +318,8 @@ func Pbs_gpumode (handle int, mom_node string, gpu_id int, gpu_mode int) error {
     return nil
 }
 
+/*
+// pbs_gpureset not declared in pbs_ifl.h for 3.0.0
 func Pbs_gpureset (handle int, mom_node string, gpu_id int, ecc_perm int, ecc_vol int) error {
 	m := C.CString(mom_node)
 	defer C.free(unsafe.Pointer(m))
@@ -328,6 +330,7 @@ func Pbs_gpureset (handle int, mom_node string, gpu_id int, ecc_perm int, ecc_vo
     }
     return nil
 }
+*/
 
 func Pbs_holdjob(handle int, id string, holdType Hold, extend string) error {
 	e := C.CString(extend)
@@ -528,7 +531,9 @@ func Pbs_sigjob(handle int, id string, signal string, extend string) error {
 	return nil
 }
 
-funct Pbs_stagein(handle int, id string, location string, extend string) error {
+/*
+// pbs_stagein not declared in pbs_ifl.h 3.0.0
+func Pbs_stagein(handle int, id string, location string, extend string) error {
 	i := C.CString(id)
 	defer C.free(unsafe.Pointer(i))
 
@@ -544,6 +549,7 @@ funct Pbs_stagein(handle int, id string, location string, extend string) error {
 	}
 	return nil
 }
+*/
 
 func Pbs_statjob(handle int, id string, attribs []Attrib, extend string) ([]BatchStatus, error) {
 	i := C.CString(id)
