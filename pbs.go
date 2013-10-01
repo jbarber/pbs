@@ -307,11 +307,14 @@ func Pbs_geterrmsg(handle int) string {
 	return C.GoString(s)
 }
 
-func Pbs_gpumode (handle int, mom_node string, gpu_id int, gpu_mode int) error {
+func Pbs_gpumode (handle int, mom_node string, gpu_id string, gpu_mode int) error {
 	m := C.CString(mom_node)
 	defer C.free(unsafe.Pointer(m))
 
-    ret := C.pbs_gpumode(C.int(handle), m, C.int(gpu_id), C.int(gpu_mode))
+	g := C.CString(gpu_id)
+	defer C.free(unsafe.Pointer(g))
+
+    ret := C.pbs_gpumode(C.int(handle), m, g, C.int(gpu_mode))
     if ret != 0 {
 		return getLastError()
     }
