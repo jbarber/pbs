@@ -43,6 +43,8 @@ library.
         // ...
     }
 
+More examples can be found in the [EXAMPLE.md](EXAMPLE.md)
+
 ## Testing
 
 A test suite is present, it requires a running Torque server which accepts jobs
