@@ -9,22 +9,39 @@
 //
 // The following functions have not yet been implemented:
 /*
-   pbs_alterjob
+   pbs_alterjob      - untested
    pbs_alterjobasync
-   pbs_manager
-   pbs_rescquery
+   pbs_manager       - untested
    pbs_rescreserve
    pbs_asyncrunjob
-   pbs_selstat
    pbs_sigjobasync
 */
 package pbs
 
-// #cgo CFLAGS: -g
-// #cgo LDFLAGS: -ltorque
-// #include <stdlib.h>
-// #include <torque/pbs_error.h>
-// #include <torque/pbs_ifl.h>
+/*
+#cgo CFLAGS: -g
+#cgo LDFLAGS: -ltorque
+#include <stdlib.h>
+#include <torque/pbs_error.h>
+#include <torque/pbs_ifl.h>
+
+// I gave up getting the CGO functions for these right, casting was killing me
+static char** mkStringArray (unsigned int len) {
+  return (char **) malloc(sizeof(char *) * len);
+}
+
+static void freeCstringsN (char **array, unsigned int len) {
+    unsigned int i = 0;
+    for (i = 0; i < len; i++) {
+        free(array[i]);
+    }
+    free(array);
+}
+
+static void addStringToArray (char **array, char *str, unsigned int offset) {
+  array[offset] = str;
+}
+*/
 import "C"
 import (
 	"errors"
@@ -58,6 +75,10 @@ type MessageStream int
 // Operator defines types of logical comparator
 type Operator int
 
+type Command int
+
+type ObjectType int
+
 const (
 	SHUT_IMMEDIATE                 Manner        = C.SHUT_IMMEDIATE
 	SHUT_DELAY                     Manner        = C.SHUT_DELAY
@@ -66,6 +87,18 @@ const (
 	SYSTEM_HOLD                    Hold          = C.SYSTEM_HOLD
 	MSG_ERR                        MessageStream = C.MSG_ERR
 	MSG_OUT                        MessageStream = C.MSG_OUT
+	MGR_CMD_CREATE                 Command       = C.MGR_CMD_CREATE
+	MGR_CMD_DELETE                 Command       = C.MGR_CMD_DELETE
+	MGR_CMD_SET                    Command       = C.MGR_CMD_SET
+	MGR_CMD_UNSET                  Command       = C.MGR_CMD_UNSET
+	MGR_CMD_LIST                   Command       = C.MGR_CMD_LIST
+	MGR_CMD_PRINT                  Command       = C.MGR_CMD_PRINT
+	MGR_CMD_ACTIVE                 Command       = C.MGR_CMD_ACTIVE
+	MGR_OBJ_NONE                   ObjectType    = C.MGR_OBJ_NONE
+	MGR_OBJ_SERVER                 ObjectType    = C.MGR_OBJ_SERVER
+	MGR_OBJ_QUEUE                  ObjectType    = C.MGR_OBJ_QUEUE
+	MGR_OBJ_JOB                    ObjectType    = C.MGR_OBJ_JOB
+	MGR_OBJ_NODE                   ObjectType    = C.MGR_OBJ_NODE
 	ATTR_a                         string        = C.ATTR_a
 	ATTR_c                         string        = C.ATTR_c
 	ATTR_e                         string        = C.ATTR_e
@@ -236,6 +269,24 @@ func freeCstrings(x **C.char) {
 	}
 }
 
+func Pbs_alterjob(handle int, id string, attribs []Attrib, extend string) error {
+	e := C.CString(extend)
+	defer C.free(unsafe.Pointer(e))
+
+	s := C.CString(id)
+	defer C.free(unsafe.Pointer(s))
+
+	a := attrib2attribl(attribs)
+	defer freeattribl(a)
+
+	ret := C.pbs_alterjob(C.int(handle), s, a, e)
+	if ret != 0 {
+		return errors.New(Pbs_strerror(int(C.pbs_errno)))
+	}
+
+	return nil
+}
+
 func Pbs_checkpointjob(handle int, id string, extend string) error {
 	s := C.CString(id)
 	defer C.free(unsafe.Pointer(s))
@@ -369,6 +420,43 @@ func Pbs_locjob(handle int, id string) (string, error) {
 	return C.GoString(ret), nil
 }
 
+func Pbs_manager(handle int, command Command, obj_type ObjectType, obj_name string, attrib []Attrib, extend string) error {
+	name := C.CString(obj_name)
+	defer C.free(unsafe.Pointer(name))
+
+	e := C.CString(extend)
+	defer C.free(unsafe.Pointer(e))
+
+	a := attrib2attribl(attrib)
+	defer freeattribl(a)
+
+	ret := C.pbs_manager(C.int(handle), C.int(command), C.int(obj_type), name, (*C.struct_attropl)(unsafe.Pointer(a)), e)
+	if ret != 0 {
+		return errors.New(Pbs_strerror(int(C.pbs_errno)))
+	}
+
+	return nil
+}
+
+func Pbs_selstat(handle int, attribs []Attrib, extend string) ([]BatchStatus, error) {
+	a := attrib2attribl(attribs)
+	defer freeattribl(a)
+
+	e := C.CString(extend)
+	defer C.free(unsafe.Pointer(e))
+
+	batch_status := C.pbs_selstat(C.int(handle), (*C.struct_attropl)(unsafe.Pointer(a)), e)
+
+	// FIXME: nil also indicates no jobs matched selection criteria...
+	if batch_status == nil {
+		return nil, errors.New(Pbs_strerror(int(C.pbs_errno)))
+	}
+	defer C.pbs_statfree(batch_status)
+	batch := get_pbs_batch_status(batch_status)
+
+	return batch, nil
+}
+
 func Pbs_movejob(handle int, id string, destination string, extend string) error {
 	i := C.CString(id)
 	defer C.free(unsafe.Pointer(i))
@@ -419,6 +507,28 @@ func Pbs_orderjob(handle int, job_id1 string, job_id2, extend string) error {
 		return errors.New(Pbs_strerror(int(C.pbs_errno)))
 	}
 	return nil
+}
+
+func cstringArray(strings []string) **C.char {
+	c := C.mkStringArray(C.uint(len(strings)))
+	for i, str := range strings {
+		C.addStringToArray(c, C.CString(str), C.uint(i))
+	}
+	return c
+}
+
+func Pbs_rescquery(handle int, resources []string) (int, int, int, int, error) {
+	var avail, alloc, reserv, down C.int
+
+	rl := cstringArray(resources)
+	defer C.freeCstringsN(rl, C.uint(len(resources)))
+
+	ret := C.pbs_rescquery(C.int(handle), rl, C.int(len(resources)), &avail, &alloc, &reserv, &down)
+	if ret != 0 {
+		return 0, 0, 0, 0, errors.New(Pbs_strerror(int(C.pbs_errno)))
+	}
+
+	return int(avail), int(alloc), int(reserv), int(down), nil
 }
 
 func Pbs_rerunjob(handle int, id string, extend string) error {

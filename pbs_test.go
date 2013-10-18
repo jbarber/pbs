@@ -229,3 +229,56 @@ func TestResources(t *testing.T) {
 		t.Logf("Used nodes: %d\n", use)
 	}
 }
+
+func TestRescquery(t *testing.T) {
+	handle, err := Pbs_connect(server)
+	if err != nil {
+		t.Fatalf("Connect to %s failed: %s\n", server, err)
+	}
+
+	defer func() {
+		err = Pbs_disconnect(handle)
+		if err != nil {
+			t.Errorf("Disconnect failed: %s\n", err)
+		}
+	}()
+
+    {
+        avail, alloc, reserv, down, err := Pbs_rescquery(handle, []string{"nodes"})
+		if err != nil {
+			t.Errorf("Pbs_rescquery failed: %s\n", err)
+		}
+		t.Logf("Available nodes: %d\n", avail)
+		t.Logf("Allocated nodes: %d\n", alloc)
+		t.Logf("Reserved nodes: %d\n", reserv)
+		t.Logf("Down nodes: %d\n", down)
+    }
+}
+
+func TestSelstat(t *testing.T) {
+	handle, err := Pbs_connect(server)
+	if err != nil {
+		t.Fatalf("Connect to %s failed: %s\n", server, err)
+	}
+
+	defer func() {
+		err = Pbs_disconnect(handle)
+		if err != nil {
+			t.Errorf("Disconnect failed: %s\n", err)
+		}
+	}()
+
+    {
+        attribs, err := Pbs_selstat(handle, nil, "")
+        if err != nil {
+            t.Errorf("Couldn't get job statistics: %s\n", err)
+        }
+
+        for _, server := range attribs {
+            t.Logf("%s (%s)\n", server.Name, server.Text)
+            for _, attr := range server.Attributes {
+                logAttribute(t, attr)
+            }
+        }
+    }
+}
